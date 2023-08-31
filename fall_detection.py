@@ -60,11 +60,12 @@ def fill_missing_points(skeleton_data):
     return skeleton_data
 
 
-
+# load data
 skeleton_data_1 = load_skeleton_data('./data/skeleton_1.npy')
 skeleton_data_2 = load_skeleton_data('./data/skeleton_2.npy')
 skeleton_data_3 = load_skeleton_data('./data/skeleton_3.npy')
 
+# data preprocessing 
 skeleton_data_1 = fill_missing_points(skeleton_data_1)
 skeleton_data_2 = fill_missing_points(skeleton_data_2)
 skeleton_data_3 = fill_missing_points(skeleton_data_3)
