@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import torch.nn as nn
 
 device = 'cude' if torch.cuda.is_available() else 'cpu'
 
