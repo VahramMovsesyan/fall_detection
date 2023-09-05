@@ -4,51 +4,59 @@ import numpy as np
 # device = 'cude' if torch.cuda.is_available() else 'cpu'
 
 class FallDetecion():
-    def __init__(self):
-        pass
+    def __init__(self, threshold=5.0):
+        self.threshold = threshold
+        # Used in to_vector function
+        self.specified_connections = [
+            (0, 1), (0, 2), (1, 2), (1, 3), (3, 5),(5,11),
+            (5, 7), (7, 9), (2, 4), (4, 6), (6, 17),
+            (6, 8), (8, 10), (6, 12), (5, 17), (11, 18),
+            (18, 12), (11, 13),(13, 15), (12, 14), (14, 16),
+            (0, 17), (0, 18)
+        ]
+        self.vec_pairs = [(18,17),(17,15),(19,20),(19,16),(11,12),(11,13),(6,5),(6,7),(21,23),(22,23)]  # Used in angle_calculator function
+        
 
-    def angle_calculator(self,vec1,vec2):
-        self.dot = np.dot(vec1,vec2)
+    def to_vector(self,keypoints):
 
-        self.magnitude1 = np.linalg.norm(vec1)
-        self.magnitude2 = np.linalg.norm(vec2)
+        # Add 3 point
+        point_17 = np.array([[(keypoints[6][0] + keypoints[5][0]) / 2, (keypoints[6][1] + keypoints[5][1]) / 2]])
+        point_18 = np.array([[(keypoints[12][0] + keypoints[11][0]) / 2, (keypoints[12][1] + keypoints[11][1]) / 2]])
+        keypoints = np.concatenate((keypoints, point_17, point_18), axis=0)
+        # print(keypoints.shape) # (19, 2)
+        
+        # Calculate vectors for specified connections
+        vectors = []
 
-        self.angle_rad = np.arccos(self.dot / (self.magnitude1 * self.magnitude2))
-        return  np.degrees(self.angle_rad)
+        for connection in self.specified_connections:
+            point1, point2 = connection
+            vector = keypoints[point2] - keypoints[point1]
+            vector = np.array(vector)
+            vectors.append(vector)
 
-    def to_vector(self,data):
-        # Define connections between points
-        connections = {
-            0: [1, 2],
-            1: [2, 3],
-            2: [4],
-            3: [5],
-            4: [6],
-            5: [6, 7, 11],
-            6: [8, 12],
-            7: [9],
-            8: [10],
-            9: [],
-            10: [],
-            11: [12, 13],
-            12: [14],
-            13: [15],
-            14: [16],
-            15: [],
-            16: []
-        }
+        # Add vertical vector
+        vertical_vector = np.array([0,1])
+        vectors.append(vertical_vector)
+        vectors = np.array(vectors) # 1d array -> 2d array
+        return vectors
+    
 
-        # Calculate the specific 19 vectors based on connections
-        specific_vectors = []
+    def angle_calculator(self,vectors_arr: np.ndarray) -> np.ndarray: 
+        angles = []
 
-        for source_point, connected_points in connections.items():
-            for target_point in connected_points:
-                specific_vectors.append(data[target_point] - data[source_point])
+        for pair in self.vec_pairs:
+            vector_1, vector_2 = vectors_arr[pair[0]], vectors_arr[pair[1]]
 
-        # Display the specific 19 vectors
-        specific_vectors = np.array(specific_vectors)
-        print(specific_vectors)
-        return specific_vectors
+            dot = np.dot(vector_1,vector_2)
+
+            magnitude1 = np.linalg.norm(vector_1)
+            magnitude2 = np.linalg.norm(vector_2)
+
+            angle_rad = np.arccos(dot / (magnitude1 * magnitude2))
+            angles.append(np.degrees(angle_rad))
+
+        return  np.array(angles)
+    
 
     def __call__(self, skeleton_cache):
         '''
@@ -62,13 +70,24 @@ class FallDetecion():
                 - bool: isFall (True or False)
                 - float: fallScore
         '''
-        point_data = skeleton_cache[0,:]
-        self.vectors = self.to_vector(point_data)
-            
-        # self.dot_product = self.angle_calculator(x,y)
-        # print(self.dot_product)
-        #return isFall, fallScore 
+        angles = np.array([0])
+        for i in range(90):
+            for y in range(i,18+i):
+                current_frm_vec, next_frm_vec = self.to_vector(skeleton_cache[y,:]), self.to_vector(skeleton_cache[y+1,:])
+                current_frm_angle, next_frm_angle = self.angle_calculator(current_frm_vec), self.angle_calculator(next_frm_vec)
+                # print(current_frm_angle,next_frm_angle,sep='\n',end='\n======================================================\n')
+                frame_angle = np.around(np.sum(np.around(np.sum(current_frm_angle - next_frm_angle) / 8,5))/18,5)
+                if angles.size:
+                    angles = np.around((angles + frame_angle) / 2, 5) 
+                else:
+                    angles = frame_angle
+
+        isFall = angles[0] > self.threshold            
+        fallScore = f'Fall Score = {None}'
+        return isFall, fallScore 
     
+
+
 
 # Load skeleton data
 def load_skeleton_data(file_path):
@@ -76,6 +95,7 @@ def load_skeleton_data(file_path):
 
 # Fill missing points using interpolation
 def fill_missing_points(skeleton_data):
+
     # Fill missing points with NaNs
     skeleton_data[skeleton_data <= 0] = np.nan
     try:
@@ -106,10 +126,6 @@ def fill_missing_points(skeleton_data):
 
 
 
-
-
-
-
 # load data
 skeleton_data_1 = load_skeleton_data('./data/skeleton_1.npy')
 skeleton_data_2 = load_skeleton_data('./data/skeleton_2.npy')
@@ -121,5 +137,7 @@ skeleton_data_2 = fill_missing_points(skeleton_data_2)
 skeleton_data_3 = fill_missing_points(skeleton_data_3)
 
 
+
 fall_obj = FallDetecion()
-fall_obj(skeleton_data_1)
+print(fall_obj(skeleton_data_1))
+
