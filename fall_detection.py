@@ -1,11 +1,54 @@
 import torch
 import numpy as np
 
-device = 'cude' if torch.cuda.is_available() else 'cpu'
+# device = 'cude' if torch.cuda.is_available() else 'cpu'
 
 class FallDetecion():
     def __init__(self):
-        self.cache = torch.zeros(108)
+        pass
+
+    def angle_calculator(self,vec1,vec2):
+        self.dot = np.dot(vec1,vec2)
+
+        self.magnitude1 = np.linalg.norm(vec1)
+        self.magnitude2 = np.linalg.norm(vec2)
+
+        self.angle_rad = np.arccos(self.dot / (self.magnitude1 * self.magnitude2))
+        return  np.degrees(self.angle_rad)
+
+    def to_vector(self,data):
+        # Define connections between points
+        connections = {
+            0: [1, 2],
+            1: [2, 3],
+            2: [4],
+            3: [5],
+            4: [6],
+            5: [6, 7, 11],
+            6: [8, 12],
+            7: [9],
+            8: [10],
+            9: [],
+            10: [],
+            11: [12, 13],
+            12: [14],
+            13: [15],
+            14: [16],
+            15: [],
+            16: []
+        }
+
+        # Calculate the specific 19 vectors based on connections
+        specific_vectors = []
+
+        for source_point, connected_points in connections.items():
+            for target_point in connected_points:
+                specific_vectors.append(data[target_point] - data[source_point])
+
+        # Display the specific 19 vectors
+        specific_vectors = np.array(specific_vectors)
+        print(specific_vectors)
+        return specific_vectors
 
     def __call__(self, skeleton_cache):
         '''
@@ -19,9 +62,12 @@ class FallDetecion():
                 - bool: isFall (True or False)
                 - float: fallScore
         '''
-
-        raise NotImplementedError
-        return isFall, fallScore 
+        point_data = skeleton_cache[0,:]
+        self.vectors = self.to_vector(point_data)
+            
+        # self.dot_product = self.angle_calculator(x,y)
+        # print(self.dot_product)
+        #return isFall, fallScore 
     
 
 # Load skeleton data
@@ -59,6 +105,11 @@ def fill_missing_points(skeleton_data):
     return skeleton_data
 
 
+
+
+
+
+
 # load data
 skeleton_data_1 = load_skeleton_data('./data/skeleton_1.npy')
 skeleton_data_2 = load_skeleton_data('./data/skeleton_2.npy')
@@ -69,3 +120,6 @@ skeleton_data_1 = fill_missing_points(skeleton_data_1)
 skeleton_data_2 = fill_missing_points(skeleton_data_2)
 skeleton_data_3 = fill_missing_points(skeleton_data_3)
 
+
+fall_obj = FallDetecion()
+fall_obj(skeleton_data_1)
