@@ -44,7 +44,6 @@ class FallDetecion():
             angl_diff = abs(next_frm_angle - current_frm_angle)
             frm_angle = np.append(frm_angle,np.around(np.mean(angl_diff),5))
         
-        
         angles = np.round(np.mean(frm_angle),5)
         isFall = angles > self.threshold
         fallScore = f'Fall Score = {angles}'
@@ -88,7 +87,6 @@ class FallDetecion():
 
         return skeleton_data
     
-
     # Create vectors from 17 + 4 points
     def to_vector(self, keypoints: np.ndarray) -> np.ndarray:
 
@@ -140,7 +138,7 @@ fall_obj = FallDetecion(threshold=6.1)
 # Array contain all fall score. This for visualization
 # arr = np.empty((1)) 
 
-# Testing algorithm like mashine. Delete for loop and give SPLITTED skslethon cache as an OBJECT argument 
+# Testing algorithm like mashine. Delete for loop and give SPLITTED skelethon cache as an OBJECT argument 
 for i in range(90):
     print(fall_obj(skeleton_data_2[i:i+19,...]))
     # arr = np.append(arr,float(fall_obj(skeleton_data_3[i:i+19,...])[1].split(" = ")[1]))
